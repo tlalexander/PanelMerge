@@ -10,10 +10,12 @@ import zipfile
 # variables
 batchname=""
 proj_list = []
-ext_arr=['.GBO','.GBS','.GBL','.GTL','.GTO','.GTP','.GTS','.GOL','.TXT']
-merged_projects_dir = os.path.expanduser('~') #user's home directory. Should probably be changed when on windows (works on Win but weird).
-merged_projects_dir+= "/Dropbox/PCB/panelmerge/batches" # if you have things arranged like me use this or similar, otherwise use line below
-#merged_projects_dir+= "/gerbmerge/batches/" # alternative directory suggestion. comment out the above line and uncomment this if desired.
+ext_arr=['.GBO','.GBS','.GBL','.GTL','.GTO','.GTP','.GTS','.GOL','.TXT','G2L','G3L']
+
+# Assign the working directory. Batches and associated files will be stored here.
+#working_directory = os.path.expanduser('~') #user's home directory. Should probably be changed when on windows (works on Win but weird).
+#working_directory+= "/Dropbox/PCB/panelmerge/batches" # if you have things arranged like me use this or similar, otherwise use line below
+working_directory= "/mnt/storage1/Dropbox/PCB/panelmerge/batches" # alternative directory suggestion. comment out the above line and uncomment this if desired.
 
 
 # TODO:
@@ -30,7 +32,7 @@ def refresh_console(): # clears the terminal and adds the CLI header
     print "**** Welcome to gerbmerge CLI. ****"
     print ""
     print "Current project directory is:"
-    print merged_projects_dir
+    print working_directory
     if batchname != "":
         print ""
         print "Batch name is: %s" % batchname
@@ -62,7 +64,7 @@ def reload_zip(source, dest):
 def load_project(project): # file I/O via http://snipplr.com/view/6630/
     try:
         # Read mode opens a file for reading only.
-        filename = "%s/%s/%s.txt" % (merged_projects_dir, project, project)
+        filename = "%s/%s/%s.txt" % (working_directory, project, project)
         f = open(filename, "r")
         try:
             # read all the lines into a list.
@@ -80,7 +82,7 @@ def load_project(project): # file I/O via http://snipplr.com/view/6630/
                     if len(line.split(';')) > 2:
                         file = line.split(';')[2]
                         project = line.split(';')[0]
-                        extract_path = "%s/%s/%s/" % (merged_projects_dir, batchname, project)
+                        extract_path = "%s/%s/%s/" % (working_directory, batchname, project)
                         reload_zip(file.strip(),extract_path.strip())
                       
             
@@ -108,13 +110,15 @@ def addproject(name, path, copies):
 # names across all jobs.
 
 *TopLayer=%s.GTL
+*InternalLayer1=%s.G2L
+*InternalLayer2=%s.G3L
 *BottomLayer=%s.GBL
 *TopSilkscreen=%s.GTO
 *BottomSilkscreen=%s.GBO
 *TopSoldermask=%s.GTS
 *BottomSoldermask=%s.GBS
-Drills=%s.TXT
-BoardOutline=%s.GOL
+Drills=%s.XLN
+BoardOutline=%s.GKO
 
 # If this job does not have drill tool sizes embedded in the Excellon file, it
 # needs to have a separate tool list file that maps tool names (e.g., 'T01') to
@@ -132,28 +136,30 @@ BoardOutline=%s.GOL
 # (i.e., no *.def file) to indicate how many times this job should appear in
 # the final panel. When using manual placement, this option is ignored.
 Repeat = %d
-""" % (name,path,path,path,path,path,path,path,path,copies)
+""" % (name,path,path,path,path,path,path,path,path,path,path,copies)
     
-    
+
 def setoutput(path):
     return """    
 ##############################################################################
 [MergeOutputFiles]
 
 *TopLayer=%s.GTL
+*InternalLayer1=%s.G2L
+*InternalLayer2=%s.G3L
 *BottomLayer=%s.GBL
 *TopSilkscreen=%s.GTO
 *BottomSilkscreen=%s.GBO
 *TopSoldermask=%s.GTS
 *BottomSoldermask=%s.GBS
-Drills=%s.txt
-BoardOutline=%s.GOL
+Drills=%s.XLN
+BoardOutline=%s.GKO
 ToolList = %s.toollist.drl
 Placement = %s.placement.txt
-""" % (path,path,path,path,path,path,path,path,path,path)
+""" % (path,path,path,path,path,path,path,path,path,path,path,path)
     
         
-d = os.path.dirname(merged_projects_dir) #if folder does not exist, create it
+d = os.path.dirname(working_directory) #if folder does not exist, create it
 if not os.path.exists(d):
     os.makedirs(d)
 
@@ -167,7 +173,10 @@ while True:
     name=""
     while name == "":
         name=raw_input(">").strip() # strip() removes trailing whitespace that ends up there
-    
+	
+	if "'" in name:
+		name = name.replace("'", "") # lazy string cleanup remove single quotes from string.
+        
     if "\ " in name:
         name = name.replace("\ ", " ") # cleans up filename that was dropped into terminal if it has spaces
     
@@ -193,7 +202,7 @@ while True:
                 print file
                 project = line.split(';')[0]
                 print project
-                extract_path = "%s/%s/%s/" % (merged_projects_dir, batchname, project)
+                extract_path = "%s/%s/%s/" % (working_directory, batchname, project)
                 reload_zip(file.strip(),extract_path.strip())
         refresh_console() # reload zip
         
@@ -204,7 +213,7 @@ while True:
     
     elif name=='b':
         print "Project Batches in main directory:"
-        for index, dirname in enumerate(os.listdir(merged_projects_dir)):
+        for index, dirname in enumerate(os.listdir(working_directory)):
             if dirname[0] != '.': # hide hidden folders
                 print dirname
         print "Type a batch name to assign as the current batch, or press enter to return."
@@ -224,11 +233,11 @@ while True:
         print ""
         print "*** WARNING: This command will delete all files in the following directory! ***"
         print "--"
-        print merged_projects_dir
+        print working_directory
         print "--"
         print "Type 'yes' to proceed, otherwise this will be canceled."
         if raw_input(">")=="yes": 
-            for root, dirs, files in os.walk(merged_projects_dir, topdown=False):
+            for root, dirs, files in os.walk(working_directory, topdown=False):
                 for name in files:
                     os.remove(os.path.join(root, name))
                 for name in dirs:
@@ -268,19 +277,19 @@ while True:
                     except:
                         print "cannot split string %s or match extension %s" % (filename, ext)
                         continue #continue is fine, the try just freaks out with some of the weird filenames listed as being part of a zip file
-        answer = raw_input("Found %d macthing files. Add to batch? (y/n) " % matched_files)
+        answer = raw_input("Found %d matching files. Add to batch? (y/n) " % matched_files)
         if answer == 'y':
             if batchname == "":
                 print "No batch name assigned. Type one now or press enter to use 'temp'. All files in that dir will be wiped."
                 batchname = raw_input(">")
                 if batchname == "":
                     batchname = "temp"
-            project_name = os.path.splitext(filename)[0];        
-            extract_path = "/%s/%s/%s" % (merged_projects_dir, batchname, project_name)
+            project_name = os.path.splitext(filename)[0];
+            extract_path = "/%s/%s/%s" % (working_directory, batchname, project_name)
             print extract_path
             z.extractall(extract_path) # extract zip to specified folder
             proj_list.append(project_name) #append project entry to project details list
-            textfile_path = "/%s/%s/%s.txt" % (merged_projects_dir, batchname, batchname)
+            textfile_path = "/%s/%s/%s.txt" % (working_directory, batchname, batchname)
             project_string = "%s;0;%s\r\n" % (project_name, name)
             if append_project(textfile_path ,project_string):
                 print "Files saved into batch %s" % batchname
@@ -300,9 +309,9 @@ while True:
         print "Invalid file or command"
         
 #raw_input("Hit enter to add text to project file")
-source = "%s/layout.cfg" % os.path.dirname(merged_projects_dir)
+source = "%s/layout.cfg" % os.path.dirname(working_directory)
 #print source
-dest = "%s/%s/layout.cfg" % (merged_projects_dir, batchname)
+dest = "%s/%s/layout.cfg" % (working_directory, batchname)
 #print dest
 shutil.copyfile(source, dest) # copies skeleton config file to batch directory
 
@@ -314,7 +323,7 @@ if not os.path.exists(folder):
 
 for project in proj_list:
     copies = raw_input("How many copies of %s should be made?" % project)
-    proj_dest = "%s/%s/%s/%s" % (merged_projects_dir, batchname, project, project)
+    proj_dest = "%s/%s/%s/%s" % (working_directory, batchname, project, project)
     append_project(dest, addproject(project, proj_dest, int(copies)))
 
 call = "gerbmerge --random-search %s" % dest
