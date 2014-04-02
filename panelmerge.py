@@ -1,5 +1,21 @@
 #! /usr/bin/env python
 
+#   panelmerge, a simple program to create PCB panels using gerbmerge
+#   Copyright Taylor Alexander 2013
+
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 # imports
 from sys import exit
 import subprocess
@@ -10,7 +26,7 @@ import zipfile
 # variables
 batchname=""
 proj_list = []
-ext_arr=['.GBO','.GBS','.GBL','.GTL','.GTO','.GTP','.GTS','.GOL','.TXT','G2L','G3L']
+ext_arr=['.GBO','.GBS','.GBL','.GTL','.GTO','.GTP','.GTS','.GOL','.TXT','G2L','G3L','.XLN']
 
 # Assign the working directory. Batches and associated files will be stored here.
 #working_directory = os.path.expanduser('~') #user's home directory. Should probably be changed when on windows (works on Win but weird).
@@ -175,7 +191,7 @@ while True:
         name=raw_input(">").strip() # strip() removes trailing whitespace that ends up there
 	
 	if "'" in name:
-		name = name.replace("'", "") # lazy string cleanup remove single quotes from string.
+		name = name.replace("'", "") # lazy string cleanup remove single quotes from string. I don't recall this being needed on windows, but it was needed on Linux.
         
     if "\ " in name:
         name = name.replace("\ ", " ") # cleans up filename that was dropped into terminal if it has spaces
@@ -249,7 +265,7 @@ while True:
     elif name=='q':
         exit(0)
      
-    elif os.path.exists(name): # if we dropped a zip file here, deal with it
+    elif os.path.exists(name): # if we dropped a zip file here, handle it
         
         print "Filename is: %s" % name
         
